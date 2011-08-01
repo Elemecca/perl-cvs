@@ -112,8 +112,8 @@ sub bind
           if $debug;
         chmod(0700, $file);
         $fh->print("#!/bin/sh\n");
-        $fh->print("echo \$1|grep -iq password&&echo $self->{password}&&exit\n");
-        $fh->print("echo \$1|grep -iq passphrase&&echo $self->{passphrase}&&exit\n");
+        $fh->print("echo \$1|grep -iq password&&echo " . ($self->{password} or "") . "&&exit\n");
+        $fh->print("echo \$1|grep -iq passphrase&&echo " . ($self->{passphrase} or "") . "&&exit\n");
         $fh->print("echo yes\n");
         $fh->close();
         $cmd->push_cleanup(sub
