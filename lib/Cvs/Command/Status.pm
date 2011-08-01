@@ -56,7 +56,15 @@ sub init
          {
              if($result->isa('Cvs::Result::StatusItem'))
              {
-                 return $tags->finish();
+                 my $callback = $self->param->{callback};
+                 if ($callback)
+                 {
+                     &$callback($result);
+                 }
+                 else
+                 {
+                     return $tags->finish();
+                 }
              }
              else
              {
@@ -148,6 +156,19 @@ sub init
      {
          # switching to tags context
          return $tags
+     }
+    );
+
+    $self->push_cleanup
+    (
+     sub
+     {
+         my $callback = $self->param->{callback};
+         if($callback and $self->result->isa('Cvs::Result::StatusItem'))
+         {
+             &$callback($self->result);
+             $self->result(new Cvs::Result::Base);
+         }
      }
     );
 
