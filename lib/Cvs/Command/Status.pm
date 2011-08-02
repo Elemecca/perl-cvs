@@ -51,9 +51,13 @@ sub init
      qr/^(?:=+|\? (.*))$/, sub
      {
          my($match) = @_;
+         my $debug = $self->cvs->debug;
+         print STDERR "** next file " if($debug);
 
          if($self->param->{multiple})
          {
+             print STDERR "multiple\n" if($debug);
+
              unless(defined $resultlist)
              {
                  $resultlist = new Cvs::Result::StatusList;
@@ -69,14 +73,20 @@ sub init
                  my $callback = $self->param->{callback};
                  if ($callback)
                  {
+                     print STDERR "callback\n" if($debug);
                      &$callback($result);
                  }
                  else
                  {
+                     print STDERR "single\n" if($debug);
                      return $tags->finish();
                  }
              }
-
+             elsif($debug)
+             {
+                 print STDERR "\n";
+             }
+            
              $result = new Cvs::Result::StatusItem;
              $self->result($result);
          }
@@ -186,6 +196,18 @@ sub init
      {
          # switching to tags context
          return $tags
+     }
+    );
+
+    # Unknown entries don't have a tag list and thus don't switch back
+    # to tags context the normal way. This handler catches lines with
+    # non-whitespace in the first column, which can't happen within an
+    # entry, and requests re-analysis by the tags context.
+    $main->push_handler
+    (
+     qr/^[^\s]/, sub
+     {
+         return $main->rescan_with($tags);
      }
     );
 
