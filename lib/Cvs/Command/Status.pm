@@ -40,8 +40,10 @@ sub init
     );
     $tags->push_handler
     (
-     qr/^=+$/, sub
+     qr/^(?:=+|\? (.*))$/, sub
      {
+         my($match) = @_;
+
          if($self->param->{multiple})
          {
              unless(defined $resultlist)
@@ -66,15 +68,27 @@ sub init
                      return $tags->finish();
                  }
              }
-             else
-             {
-                 $result = new Cvs::Result::StatusItem;
-                 $self->result($result);
-             }
+
+             $result = new Cvs::Result::StatusItem;
+             $self->result($result);
          }
 
-         # switch to main context
-         return $main;
+         if($match->[1])
+         {
+             $match->[1] =~ qr|^(?:(.+)/)?(.+)$|;
+             $result->basedir($1 ? $1 : ".");
+             $result->filename($2);
+             $result->status("Unknown");
+             $result->exists(1);
+
+             # stay in tags context
+             return;
+         }
+         else
+         {
+             # switch to main context
+             return $main;
+         }
      }
     );
     $tags->push_handler
