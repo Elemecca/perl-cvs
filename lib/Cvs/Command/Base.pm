@@ -121,10 +121,9 @@ sub run
     # stall, and we never be sure that the command as finish, if a
     # line is complete or if the command is waiting for input (like a
     # password).
-    my($first, $last, $line, $match, $debugline);
+    my($last, $line, $match, $debugline);
     while(defined $context && $h->pump && length $out)
     {
-        $first = 1;
         $match = 0;
 
         # flushing the send buffer
@@ -135,11 +134,27 @@ sub run
 
         while(defined $context && $out =~ /.*?(?:\r?\n|$)/g)
         {
-            # my unperfect regexp match an empty line at end of
-            # certain strings... skip it
+            # the regex matches empty strings, so skip them
+            # this happens when a chunk ends on a line boundary
             next unless length $&;
 
             $line = $&;
+
+            # We receive output in chunks which don't necessarily end
+            # at line boundaries. Therefore, we occasionally encounter
+            # partial lines. We save them and then join them with the
+            # next line, which is probably in the next chunk.
+            if($last)
+            {
+                $line = $last . $line;
+                undef $last;
+            }
+            if($line !~ /\n$/)
+            {
+                $last = $line;
+                next;
+            }
+
             $line =~ s/\r/\n/g;
             $line =~ s/\n+/\n/g;
             if($debug)
@@ -172,53 +187,14 @@ sub run
             # matched.
             ($context, $match) = $context->analyse($line);
 
-            # this variable isn't relevant for others than first line,
-            # see comments below
-            undef($last) unless $first;
-
             if(not $match)
             {
-                if(defined $last)
-                {
-                    # cvs sends its output in chunks and each chunk
-                    # doesn't necessary finish at the end of the
-                    # line. So we recover the last line of last chunk
-                    # if it was unmatched by any rules and we join it
-                    # with the first line of the current chunk if it
-                    # wasn't match too, to see if it match more.
-                    ($context, $match) = $context->analyse("$last$line");
-                    if($debug)
-                    {
-                        my $un = $match ? '' : 'un';
-                        print STDERR
-                          "** ${un}matched recomposed line: $last$debugline\n";
-                    }
-                }
-                else
-                {
-                    print STDERR "** unmatched line: $debugline\n"
-                      if $debug;
-                }
+                print STDERR "** unmatched line: $debugline\n"
+                  if $debug;
             }
-
-            $first = 0;
         }
         # we don't want to parse several times the same thing
         $out = '';
-
-        # keep the last line if it doesn't be used, it's maybe an
-        # unterminated line. If line end with line-feed, this can't be
-        # an unterminated line.
-        if($match or not defined $line or $line =~ /\n$/)
-        {
-            undef($last);
-        }
-        elsif(length $line)
-        {
-            $last .= $line;
-            print STDERR "** new \$last value: $last\n"
-              if $debug;
-        }
 
         # check out if some input want be send
         if(length $self->{data})
