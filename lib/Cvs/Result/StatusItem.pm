@@ -51,6 +51,10 @@ Returns the sticky date if any, undef otherwise.
 
 Returns the sticky options if any, undef otherwise.
 
+=head2 message
+
+Returns the extra message output before the record.
+
 =cut
 
 Cvs::Result::StatusItem->mk_accessors
@@ -64,6 +68,7 @@ Cvs::Result::StatusItem->mk_accessors
     sticky_tag
     sticky_date
     sticky_options
+    message
 ));
 
 sub push_tag

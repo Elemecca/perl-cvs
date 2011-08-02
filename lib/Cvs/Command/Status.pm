@@ -28,7 +28,7 @@ sub init
     my $tags = $self->new_context;
     $self->initial_context($tags);
 
-    my($resultlist, $current_directory);
+    my($resultlist, $current_directory, $message);
     my $result = $self->err_result('No file in response');
 
     $tags->push_handler
@@ -36,6 +36,14 @@ sub init
      qr/cvs (?:status|server): Examining (.*)\n$/, sub
      {
          $current_directory = shift->[1];
+     }
+    );
+    $tags->push_handler
+    (
+     qr/^cvs (?:status|server): ([^:]+: )?`(.+)' is (.*)$/, sub
+     {
+         # save the matches for later processing
+         $message = shift;
      }
     );
     $tags->push_handler
@@ -112,7 +120,7 @@ sub init
      {
          my($match) = @_;
          my $filename = $match->[1];
-         $filename =~ s/^\s+|\s$//g;
+         $filename =~ s/^\s+|\s+$//g;
          $result->basedir($current_directory);
          $result->status($match->[2]);
          $result->exists(1);
@@ -122,6 +130,14 @@ sub init
              $result->exists(0);
          }
          $result->filename($filename);
+
+         # process the stored message, if any
+         if ($message)
+         {
+             $result->message(($message->[1] or "") . $message->[3])
+               if ($message->[2] eq $filename);
+             undef $message;
+         }
      }
     );
     $main->push_handler
