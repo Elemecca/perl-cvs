@@ -40,7 +40,7 @@ sub init
     );
     $tags->push_handler
     (
-     qr/^cvs (?:status|server): ([^:]+: )?`(.+)' (.*)$/, sub
+     qr/^cvs (?:status|server): (.*`(.+)'.*)$/, sub
      {
          # save the matches for later processing
          $message = shift;
@@ -144,7 +144,7 @@ sub init
          # process the stored message, if any
          if ($message)
          {
-             $result->message(($message->[1] or "") . $message->[3])
+             $result->message($message->[1])
                if ($message->[2] eq $filename);
              undef $message;
          }
