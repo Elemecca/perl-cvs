@@ -40,7 +40,7 @@ sub init
     );
     $tags->push_handler
     (
-     qr/^cvs (?:status|server): ([^:]+: )?`(.+)' is (.*)$/, sub
+     qr/^cvs (?:status|server): ([^:]+: )?`(.+)' (.*)$/, sub
      {
          # save the matches for later processing
          $message = shift;
